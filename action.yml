@@ -47,11 +47,11 @@ inputs:
     required: false
     default: "none"
   download-hmc:
-    description: Download HeadlessMC (if false, add a headlessmc-launcher.jar to the cwd)
+    description: Download HeadlessMC
     required: false
     default: "true"
   hmc-version:
-    description: HeadlessMC version to download
+    description: HeadlessMC version
     required: false
     default: "2.4.1"
 
@@ -84,11 +84,11 @@ runs:
         fileName: headlessmc-launcher-${{ inputs.hmc-version }}.jar
 
     - name: Download ${{ inputs.mc }}
-      run: java -jar headlessmc-launcher.jar --command download ${{ inputs.mc }}
+      run: java -jar headlessmc-launcher-${{ inputs.hmc-version }}.jar --command download ${{ inputs.mc }}
       shell: bash
 
     - name: Download ${{ inputs.modloader }}
-      run: java -jar headlessmc-launcher.jar --command ${{ inputs.modloader }} ${{ inputs.mc }} --java ${{ inputs.java }}
+      run: java -jar headlessmc-launcher-${{ inputs.hmc-version }}.jar --command ${{ inputs.modloader }} ${{ inputs.mc }} --java ${{ inputs.java }}
       shell: bash
 
     - if: inputs.mc-runtime-test != 'none'
@@ -103,19 +103,15 @@ runs:
     - if: inputs.fabric-api != 'none'
       name: Download fabric-api v${{ inputs.fabric-api }}
       run: >
-        mvn dependency:get 
-        -Dartifact=net.fabricmc.fabric-api:fabric-api:${{ inputs.fabric-api }}+${{ inputs.mc }}
-        -Ddest=run/mods/fabric-api-${{ inputs.fabric-api }}+${{ inputs.mc }}.jar
-        -DrepoUrl=https://maven.fabricmc.net/
+        wget -O run/mods/fabric-api-${{ inputs.fabric-api }}+${{ inputs.mc }}.jar
+        https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/${{ inputs.fabric-api }}+${{ inputs.mc }}/fabric-api-${{ inputs.fabric-api }}+${{ inputs.mc }}.jar
       shell: bash
 
     - if: inputs.fabric-gametest-api != 'none'
       name: Download fabric-gametest-api v${{ inputs.fabric-gametest-api }}
       run: >
-        mvn dependency:get 
-        -Dartifact=net.fabricmc.fabric-api:fabric-gametest-api-v1:${{ inputs.fabric-gametest-api }}
-        -Ddest=run/mods/fabric-gametest-api-v1-${{ inputs.fabric-gametest-api }}.jar
-        -DrepoUrl=https://maven.fabricmc.net/
+        wget -O run/mods/fabric-gametest-api-v1-${{ inputs.fabric-gametest-api }}.jar
+        https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-gametest-api-v1/${{ inputs.fabric-gametest-api }}/fabric-gametest-api-v1-${{ inputs.fabric-gametest-api }}.jar
       shell: bash
 
     - name: Configure game
@@ -130,10 +126,10 @@ runs:
       name: Run game with xvfb
       run: |
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y x11-xserver-utils
-        xvfb-run java -Dhmc.check.xvfb=true -jar headlessmc-launcher.jar --command launch ${{ inputs.regex }} -regex ${{ inputs.headlessmc-command }}
+        xvfb-run java -Dhmc.check.xvfb=true -jar headlessmc-launcher-${{ inputs.hmc-version }}.jar --command launch ${{ inputs.regex }} -regex ${{ inputs.headlessmc-command }}
       shell: bash
 
     - if: inputs.xvfb != 'true'
       name: Run game
-      run: java -jar headlessmc-launcher.jar --command launch ${{ inputs.regex }} -regex ${{ inputs.headlessmc-command }}
+      run: java -jar headlessmc-launcher-${{ inputs.hmc-version }}.jar --command launch ${{ inputs.regex }} -regex ${{ inputs.headlessmc-command }}
       shell: bash
