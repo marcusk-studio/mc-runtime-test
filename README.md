@@ -1,6 +1,6 @@
-<h1 align="center" style="font-weight: normal;"><b>Mc-Runtime-Test</b></h1>
+<h1 align="center" style="font-weight: normal;"><b>MC-Runtime-Test</b></h1>
 <p align="center">Run the Minecraft client inside your CI/CD pipeline.</p>
-<p align="center">Mc-Runtime-Test | <a href="https://github.com/3arthqu4ke/headlessmc">HMC</a> | <a href="https://github.com/3arthqu4ke/hmc-specifics">HMC-Specifics</a> | <a href="https://github.com/3arthqu4ke/hmc-optimizations">HMC-Optimizations</a></p>
+<p align="center">MC-Runtime-Test | <a href="https://github.com/3arthqu4ke/headlessmc">HMC</a> | <a href="https://github.com/3arthqu4ke/hmc-specifics">HMC-Specifics</a> | <a href="https://github.com/3arthqu4ke/hmc-optimizations">HMC-Optimizations</a></p>
 
 <div align="center">
 
@@ -31,7 +31,7 @@ This way you can already run simple boot tests, checking whether the game will b
 Mods for newer versions also execute all [gametests](https://www.minecraft.net/en-us/creator/article/get-started-gametest-framework)
 registered.
 
-Mc-Runtime-Test currently supports the following Minecraft versions and modloaders:
+MC-Runtime-Test currently supports the following Minecraft versions and modloaders:
 You can configure it to use any other version, but in that case you need to set `mc-runtime-test` to `none` and provide another way for the game to exit, or the workflow will run indefinitely.
 
 <div align="center">
@@ -64,6 +64,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # ... run actions to build your client
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: &java 21
+          distribution: "temurin"
       # Copy the jar that you build to the mods folder
       - name: Copy mod jar to mods
         run: mkdir -p run/mods && cp build/libs/<your-mod>.jar run/mods
@@ -75,7 +80,7 @@ jobs:
           modloader: fabric
           regex: .*fabric.*
           mc-runtime-test: fabric
-          java: 17
+          java: *java
 ```
 An example workflow in action can be found
 [here](https://github.com/3arthqu4ke/hmc-optimizations/blob/1.20.4/.github/workflows/run-fabric.yml).
@@ -89,7 +94,6 @@ at once can be found
 - `modloader`: The modloader to install with HeadlessMC (`forge`, `neoforge` or `fabric`).
 - `regex`: A Regex to match the MC version to launch (can in most cases just be `.*<modloader>.*`, like `.*fabric.*`, very old versions of forge might start with an uppercase `Forge`).
 - `java`: The Java version to use, e.g. `17`.
-- `java-distribution`: The [Java distribution](https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions) to use, by default we use the adopt distribution.
 - `dummy-assets`: HeadlessMC will use dummy assets to not download all the MC assets. Can be disabled by setting this to `false`.
 - `mc-runtime-test`: The MC-Runtime-Test jar to download (`none`, `lexforge`, `fabric` or `neoforge`). When using `none` you need to provide a way for the game to exit or the action will run indefinitely and time out.
 - `xvfb`: If `true` (default), runs the game with Xvfb, if false, you should probably use the -lwjgl option in headlessmc.
