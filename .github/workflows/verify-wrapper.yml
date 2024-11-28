@@ -1,11 +1,10 @@
 ---
-name: "Validate Gradle Wrapper"
+name: Validate Gradle Wrapper
 
 "on":
-  push:
+  push: # FIXME: specific
   pull_request:
   workflow_dispatch:
-  workflow_call:
 
 jobs:
   validation:

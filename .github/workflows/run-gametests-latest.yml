@@ -1,29 +1,36 @@
+---
 name: Run latest gametests
-on:
+
+"on":
   workflow_dispatch:
-  workflow_call:
 
 jobs:
   build-gametest:
+    name: Build GameTest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Java [adopt-17] # TODO: update Java
+        uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: adopt
-      - name: Grant execute permission for gametest gradlew
-        working-directory: ./gametest
-        run: chmod +x gradlew
-      - name: Build Gametest
+
+      - name: Gradle build
         working-directory: ./gametest
         run: ./gradlew build --stacktrace
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: gametest-jars
           path: ./gametest/build/libs/*.jar
 
-  build-latest:
+  build-latest: # FIXME: replace with reusable
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,12 +38,11 @@ jobs:
         with:
           java-version: 17
           distribution: adopt
-      - name: Grant execute permission for latest gradlew
-        working-directory: ./1_20
-        run: chmod +x gradlew
+
       - name: Build latest
         working-directory: ./1_20
         run: ./gradlew build --stacktrace
+
       - uses: actions/upload-artifact@v4
         with:
           name: latest-jars
@@ -46,27 +52,27 @@ jobs:
     needs: [build-gametest, build-latest]
     strategy:
       matrix:
-        version:
+        version: # FIXME: not used
           - { dir: 1_20, mc: 1.20.6, type: lexforge, modloader: forge, regex: .*forge.*, java: 21 }
           - { dir: 1_20, mc: 1.20.6, type: neoforge, modloader: neoforge, regex: .*neoforge.*, java: 21 }
           - { dir: 1_20, mc: 1.20.6, type: fabric, modloader: fabric, regex: .*fabric.*, java: 21 }
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-      - name: Make mods dir
-        run: mkdir -p run/mods
-      - name: Copy mod files
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Copy mod files # TODO: avoid this step by downloading directly to run/mods
         run: |
-          cp gametest-jars/clientgametest-1.20.6-2.4.2-fabric.jar run/mods
-          cp gametest-jars/clientgametest-1.20.6-2.4.2-neoforge.jar run/mods
-          cp gametest-jars/clientgametest-1.20.6-2.4.2-lexforge.jar run/mods
-          cp latest-jars/mc-runtime-test-1.20.6-2.4.2-fabric-release.jar run/mods
-          cp latest-jars/mc-runtime-test-1.20.6-2.4.2-lexforge-release.jar run/mods
-          cp latest-jars/mc-runtime-test-1.20.6-2.4.2-neoforge-release.jar run/mods
+          mkdir -p run/mods
+          cp gametest-jars/clientgametest-*.jar run/mods
+          cp latest-jars/mc-runtime-test-*-release.jar run/mods
+
       - name: Run game for version
         id: local-action
-        uses: ./.github/actions/local-action
+        uses: ./
         with:
           mc-runtime-test: none
           headlessmc-command: --jvm "-Djava.awt.headless=true -DMcRuntimeGameTestMinExpectedGameTests=1"
