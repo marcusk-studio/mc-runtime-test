@@ -59,16 +59,19 @@ name: Run the MC client
 on:
   workflow_dispatch:
 
+env:
+  java_version: 21
+
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      # ... run actions to build your client
       - name: Install Java
         uses: actions/setup-java@v4
         with:
-          java-version: &java 21
+          java-version: ${{ env.java_version }}
           distribution: "temurin"
+      # ... run actions to build your mod
       # Copy the jar that you build to the mods folder
       - name: Copy mod jar to mods
         run: mkdir -p run/mods && cp build/libs/<your-mod>.jar run/mods
@@ -80,7 +83,7 @@ jobs:
           modloader: fabric
           regex: .*fabric.*
           mc-runtime-test: fabric
-          java: *java
+          java: ${{ env.java_version }}
 ```
 An example workflow in action can be found
 [here](https://github.com/3arthqu4ke/hmc-optimizations/blob/1.20.4/.github/workflows/run-fabric.yml).
@@ -105,8 +108,7 @@ at once can be found
 
 # Running your own tests
 MC-Runtime-Test does not provide a framework for full integration tests.
-You can, however,
-use Minecrafts own [Game-Test Framework](https://www.minecraft.net/en-us/creator/article/get-started-gametest-framework).
+You can, however, use Minecrafts own [Game-Test Framework](https://www.minecraft.net/en-us/creator/article/get-started-gametest-framework).
 MC-Runtime-Test will basically execute the `/test runall` command after joining the world.
 On Neoforge/Lexforge gametest discovery does really not work in production, you might need to register
 them themselves and use other [hacks](gametest/src/main/java/me/earth/clientgametest/mixin/MixinGameTestRegistry.java)

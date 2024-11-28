@@ -1,29 +1,41 @@
-name: Build API
+---
+name: Build and Publish API 
 
-on:
-  push:
-  workflow_call: 
-  workflow_dispatch:
+"on":
+  push: # fixme: arbitrary
+  workflow_dispatch: # FIXME: add release
   pull_request:
     types: [opened, reopened]
+  release:
+    types: [ created ]
+
+# todo: add concurrency
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  build: # FIXME: use specific-reusable
+    name: Build
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 1.8
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java adopt-8 # FIXME: update Java
         uses: actions/setup-java@v4
         with:
-          java-version: '8'
-          distribution: 'adopt'
-
-      - name: Grant execute permission for gradlew
-        working-directory: ./api
-        run: chmod +x gradlew
+          java-version: 8
+          distribution: adopt
 
       - name: Build with Gradle
+        if: # TODO: add release switch, check if publish also builds or not
         working-directory: ./api
-        run: |
-          ./gradlew build --stacktrace
+        run: ./gradlew build --stacktrace
+
+      - name: Publish with gradle
+        if: # TODO: add release switch
+        working-directory: ./api
+        env:
+          IS_MAVEN_PUB: true
+          DEPLOY_TO_GITHUB_PACKAGES_URL: https://maven.pkg.github.com/3arthqu4ke/mc-runtime-test # TODO: parameterise
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./gradlew publish

@@ -1,12 +1,32 @@
+---
 name: Test the run action
-on:
+
+"on":
   workflow_dispatch:
+
+env:
+  java_version: 21
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - name: Local Action Call
-        id: local-action
-        uses: ./.github/actions/local-action
+      - name: Checkout 
+        uses: actions/checkout@v4
+
+      - name: Setup Java temurin-${{ env.java_version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.java_version }}
+          distribution: temurin
+
+      - name: Local Action Call # TODO: allow dispatch inputs
+        uses: ./
+        with:
+          mc: 1.20.4
+          modloader: fabric
+          regex: .*fabric.*
+          mc-runtime-test: fabric
+          java: ${{ env.java_version }}
+          fabric-api: 0.97.0
+          fabric-gametest-api: 1.3.5+85d85a934f
