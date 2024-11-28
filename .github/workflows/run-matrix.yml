@@ -1,15 +1,17 @@
+---
 name: Run all versions
-on:
-  push:
+
+"on":
+  push: # FIXME: too vague
   pull_request:
   workflow_dispatch:
-  workflow_call:
 
 jobs:
   build:
     strategy:
+      fail-fast: false # TODO: check default
       matrix:
-        version:
+        version: # TODO: DRY
           - { dir: api, mc: api, lex: api, neo: api, java: 8 }
           - { dir: 1_21, mc: 1.21.3, lex: 53.0.7, neo: 11-beta, java: 21 }
           - { dir: 1_21, mc: 1.21.1, lex: 52.0.2, neo: 4, java: 21 }
@@ -30,8 +32,7 @@ jobs:
           - { dir: 1_12, mc: 1.12.2, lex: 14.23.5.2860, neo: 0, java: 8 }
           - { dir: 1_8_9, mc: 1.8.9, lex: 11.15.1.2318-1.8.9, neo: 0, java: 8 }
           - { dir: 1_7_10, mc: 1.7.10, lex: 10.13.4.1614-1.7.10, neo: 0, java: 8 }
-      fail-fast: false
-    uses: 3arthqu4ke/mc-runtime-test/.github/workflows/build-specific-reusable.yml@main
+    uses: ./.github/workflows/build-specific-reusable.yml
     with:
       dir: ${{ matrix.version.dir }}
       mc: ${{ matrix.version.mc }}
@@ -40,9 +41,14 @@ jobs:
       java: ${{ matrix.version.java }}
 
   run:
+    if: |
+      github.event_name != 'pull_request' 
+      || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     needs: build
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
+        xvfb: [true, false]
         version:
           - { dir: 1_21, mc: 1.21.3, type: lexforge, modloader: forge, regex: .*forge.*, java: 21 }
           - { dir: 1_21, mc: 1.21.3, type: neoforge, modloader: neoforge, regex: .*neoforge.*, java: 21 }
@@ -86,13 +92,24 @@ jobs:
           - { dir: 1_12, mc: 1.12.2, type: lexforge, modloader: forge, regex: .*forge.*, java: 8 }
           - { dir: 1_8_9, mc: 1.8.9, type: lexforge, modloader: forge, regex: .*orge.*, java: 8 }
           - { dir: 1_7_10, mc: 1.7.10, type: lexforge, modloader: forge, regex: .*orge.*, java: 8 }
-    uses: 3arthqu4ke/mc-runtime-test/.github/workflows/run-specific-with-download-artifact-reusable.yml@main
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
-    with:
-      dir: ${{ matrix.version.dir }}
-      mc: ${{ matrix.version.mc }}
-      type: ${{ matrix.version.type }}
-      modloader: ${{ matrix.version.modloader }}
-      regex: ${{ matrix.version.regex }}
-      java: ${{ matrix.version.java }}
-      headlessmc-command: '--retries 3 --jvm -Djava.awt.headless=true'
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Bootstrap mods
+        run: |
+          mkdir -p run/mods
+          cp jars-${{ matrix.version.mc }}/mc-runtime-test-*-${{ matrix.version.type }}-release.jar run/mods
+
+      - name: Local Action Call # TODO: rename
+        uses: ./
+        with:
+          dir: ${{ matrix.version.dir }}
+          mc: ${{ matrix.version.mc }}
+          type: ${{ matrix.version.type }}
+          mc-runtime-test: none
+          modloader: ${{ matrix.version.modloader }}
+          regex: ${{ matrix.version.regex }}
+          java: ${{ matrix.version.java }}
+          xvfb: ${{ matrix.xvfb }}
+          headlessmc-command: ${{ matrix.xvfb && '-lwjgl' || '' }} --retries 3 --jvm -Djava.awt.headless=true
