@@ -2,9 +2,9 @@
 name: Run gametests
 
 "on":
-  workflow_dispatch:
+  workflow_dispatch: # TODO: add relevant inputs
 
-jobs:
+jobs: # TODO: add cleanup job
   build:
     name: Build
     strategy:
@@ -20,7 +20,7 @@ jobs:
       neo: ${{ matrix.neo }}
       java: ${{ matrix.java }}
 
-  merge:
+  merge: # TODO: simplify away this job
     name: Merge
     needs: [build]
     runs-on: ubuntu-latest

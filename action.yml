@@ -9,54 +9,41 @@ inputs:
   mc:
     description: Minecraft version to run
     required: true
-    default: "1.20.4"
   modloader:
     description: Modloader to install (forge, neoforge, fabric)
     required: true
-    default: "fabric"
   regex:
-    description: Regex to match the modloader jar
+    description: Regex to match the modloader jar (i.e. .*fabric.*)
     required: true
-    default: ".*fabric.*"
   java:
-    description: Java version to use
+    description: Java version to use (8, 16, 17, 21)
     required: true
-    default: "17"
   dummy-assets:
     description: Use dummy assets during testing
-    required: true
     default: "true"
   mc-runtime-test:
     description: MC-Runtime-Test jar to download (none, lexforge, neoforge, fabric)
     required: true
-    default: "fabric"
   xvfb:
     description: Runs the game with Xvfb (if false, add the -lwjgl argument)
-    required: false
     default: "true"
   headlessmc-command:
     description: Command-line arguments for HeadlessMC
-    required: false
-    default: '--jvm "-Djava.awt.headless=true -DLWJGL_DISABLE_XRANDR=true"'
+    default: '--jvm "-Djava.awt.headless=true"'
   fabric-api:
     description: Fabric API version to download (e.g. 0.97.0) or none
-    required: false
     default: "none"
   fabric-gametest-api:
     description: Fabric GameTest API version (e.g. 1.3.5+85d85a934f) or none
-    required: false
     default: "none"
   download-hmc:
     description: Download HeadlessMC
-    required: false
     default: "true"
   hmc-version:
     description: HeadlessMC version
-    required: false
     default: "2.4.1"
   cache-mc:
     description: Cache .minecraft
-    required: false
     default: "true"
 
 runs:
@@ -135,7 +122,8 @@ runs:
 
     - if: inputs.xvfb == 'true'
       name: Run game with xvfb
-      run: | # sudo DEBIAN_FRONTEND=noninteractive apt-get install -y x11-xserver-utils
+      run: | # TODO: install xrandr conditionally per #22
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y x11-xserver-utils
         xvfb-run java -Dhmc.check.xvfb=true -jar headlessmc-launcher-${{ inputs.hmc-version }}.jar --command launch ${{ inputs.regex }} -regex ${{ inputs.headlessmc-command }}
       shell: bash
 
