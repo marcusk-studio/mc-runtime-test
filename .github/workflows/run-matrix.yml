@@ -11,31 +11,77 @@ name: Build, Test, and Release
   workflow_dispatch:
 
 jobs:
+  matrix:
+    name: Set matrix
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - if: github.event_name == 'pull_request'
+        id: paths
+        name: Get paths
+        run: |
+          delimiter="$(openssl rand -hex 8)"
+          echo "filter<<${delimiter}" >> "${GITHUB_OUTPUT}"
+          for file in $(find . -maxdepth 2 -type d -name "1_*" -print | cut -d/ -f2-); do
+            echo "$file: ['$file/**']"
+          done
+          echo "${delimiter}" >> "${GITHUB_OUTPUT}"
+
+      - if: github.event_name == 'pull_request'
+        id: filter
+        name: Filter
+        uses: dorny/paths-filter@v3.0.2
+        with:
+          filters: ${{ steps.paths.outputs.filter }}
+
+      - id: matrix
+        name: Construct matrix
+        run: |
+          import os
+          import json
+
+          matrix = {"include": []}
+
+          data = [
+              {"dir": "api", "java": 8},
+              {"dir": "1_21", "mc": "1.21.3", "lex": "53.0.7", "neo": "11-beta", "java": 21},
+              {"dir": "1_21", "mc": "1.21.1", "lex": "52.0.2", "neo": "4", "java": 21},
+              {"dir": "1_21", "mc": "1.21", "lex": "51.0.24", "neo": "96-beta", "java": 21},
+              {"dir": "1_20/1_20_6", "mc": "1.20.6", "lex": "50.1.10", "neo": "119", "java": 21},
+              {"dir": "1_20", "mc": "1.20.4", "lex": "49.0.38", "neo": "219", "java": 17},
+              {"dir": "1_20", "mc": "1.20.3", "lex": "49.0.2", "neo": "8-beta", "java": 17},
+              {"dir": "1_20", "mc": "1.20.2", "lex": "48.1.0", "neo": "88", "java": 17},
+              {"dir": "1_20/1_20_1", "mc": "1.20.1", "lex": "47.2.23", "java": 17},
+              {"dir": "1_19", "mc": "1.19.4", "lex": "45.2.9", "java": 17},
+              {"dir": "1_19", "mc": "1.19.3", "lex": "44.1.23", "java": 17},
+              {"dir": "1_19", "mc": "1.19.2", "lex": "43.3.9", "java": 17},
+              {"dir": "1_19", "mc": "1.19.1", "lex": "42.0.9", "java": 17},
+              {"dir": "1_19", "mc": "1.19", "lex": "41.1.0", "java": 17},
+              {"dir": "1_18", "mc": "1.18.2", "lex": "40.2.18", "java": 17},
+              {"dir": "1_17", "mc": "1.17.1", "lex": "37.1.1", "java": 16},
+              {"dir": "1_16", "mc": "1.16.5", "lex": "36.2.42", "java": 8},
+              {"dir": "1_12", "mc": "1.12.2", "lex": "14.23.5.2860", "java": 8},
+              {"dir": "1_8_9", "mc": "1.8.9", "lex": "11.15.1.2318-1.8.9", "java": 8},
+              {"dir": "1_7_10", "mc": "1.7.10", "lex": "10.13.4.1614-1.7.10", "java": 8}
+          ]
+
+          event = os.getenv('GITHUB_EVENT_NAME')
+
+          if event == 'pull_request' and "${{ steps.filter.outcome }}" == "success":
+            dirs_to_filter = json.loads('${{ fromJSON(needs.paths-filter.outputs.changes) }}')
+            matrix.extend([item for item in data if item["dir"] in dirs_to_filter])
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+            fh.write(f'matrix={json.dumps(matrix)}\n')
+        shell: python
+
   build:
     name: Build
+    needs: [matrix]
     strategy:
       matrix:
-        include:
-          - { dir: api, java: 8 }
-          - { dir: 1_21, mc: 1.21.3, lex: 53.0.7, neo: 11-beta, java: 21 }
-          - { dir: 1_21, mc: 1.21.1, lex: 52.0.2, neo: 4, java: 21 }
-          - { dir: 1_21, mc: 1.21, lex: 51.0.24, neo: 96-beta, java: 21 }
-          - { dir: 1_20/1_20_6, mc: 1.20.6, lex: 50.1.10, neo: 119, java: 21 }
-          - { dir: 1_20, mc: 1.20.4, lex: 49.0.38, neo: 219, java: 17 }
-          - { dir: 1_20, mc: 1.20.3, lex: 49.0.2, neo: 8-beta, java: 17 }
-          - { dir: 1_20, mc: 1.20.2, lex: 48.1.0, neo: 88, java: 17 }
-          - { dir: 1_20/1_20_1, mc: 1.20.1, lex: 47.2.23, java: 17 }
-          - { dir: 1_19, mc: 1.19.4, lex: 45.2.9, java: 17 }
-          - { dir: 1_19, mc: 1.19.3, lex: 44.1.23, java: 17 }
-          - { dir: 1_19, mc: 1.19.2, lex: 43.3.9, java: 17 }
-          - { dir: 1_19, mc: 1.19.1, lex: 42.0.9, java: 17 }
-          - { dir: 1_19, mc: 1.19, lex: 41.1.0, java: 17 }
-          - { dir: 1_18, mc: 1.18.2, lex: 40.2.18, java: 17 }
-          - { dir: 1_17, mc: 1.17.1, lex: 37.1.1, java: 16 }
-          - { dir: 1_16, mc: 1.16.5, lex: 36.2.42, java: 8 }
-          - { dir: 1_12, mc: 1.12.2, lex: 14.23.5.2860, java: 8 }
-          - { dir: 1_8_9, mc: 1.8.9, lex: 11.15.1.2318-1.8.9, java: 8 }
-          - { dir: 1_7_10, mc: 1.7.10, lex: 10.13.4.1614-1.7.10, java: 8 }
+        ${{ insert }}: ${{ fromJSON(needs.matrix.outputs.matrix) }}
     uses: ./.github/workflows/flex-build.yml
     with:
       dir: ${{ matrix.dir }}
@@ -151,6 +197,7 @@ jobs:
             jars-*/*-api*.jar
 
   clean:
+    if: always()
     name: Clean up
     needs: [run, release]
     runs-on: ubuntu-22.04
