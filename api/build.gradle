@@ -3,6 +3,7 @@ plugins {
     id 'maven-publish'
 }
 
+
 group 'me.earth'
 version "$project_version"
 
