@@ -54,7 +54,7 @@ jobs:
         name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: adopt
           java-version: ${{ inputs.java }}
 
       - if: steps.cache.outputs.cache-hit != 'true'

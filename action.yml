@@ -37,7 +37,7 @@ inputs:
   headlessmc-command:
     description: Command-line arguments for HeadlessMC
     required: false
-    default: "--jvm -Djava.awt.headless=true"
+    default: '--jvm "-Djava.awt.headless=true -DLWJGL_DISABLE_XRANDR=true"'
   fabric-api:
     description: Fabric API version to download (e.g. 0.97.0) or none
     required: false
@@ -135,8 +135,7 @@ runs:
 
     - if: inputs.xvfb == 'true'
       name: Run game with xvfb
-      run: |
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y x11-xserver-utils
+      run: | # sudo DEBIAN_FRONTEND=noninteractive apt-get install -y x11-xserver-utils
         xvfb-run java -Dhmc.check.xvfb=true -jar headlessmc-launcher-${{ inputs.hmc-version }}.jar --command launch ${{ inputs.regex }} -regex ${{ inputs.headlessmc-command }}
       shell: bash
 
