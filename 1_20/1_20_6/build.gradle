@@ -7,6 +7,7 @@ plugins {
     id 'xyz.wagyourtail.unimined' version '1.3.10-SNAPSHOT'
 }
 
+
 group 'me.earth'
 version "$minecraft_version-${project(':api').project_version}"
 
